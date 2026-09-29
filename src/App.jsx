@@ -476,6 +476,8 @@ export default function App() {
           }}
           onQuickDemo={handleQuickDemo}
           summary={summary}
+          theme={theme}
+          toggleTheme={toggleTheme}
         />
         {toastMessage && (
           <div className="toast-container" role="status">

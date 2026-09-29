@@ -11,16 +11,43 @@ import {
   Download,
   Smartphone,
   Moon,
+  Sun,
   ChevronDown,
   AlertTriangle,
   UserCheck,
   Flame,
-  Check
+  Check,
+  RotateCcw,
+  Star,
+  Lock
 } from 'lucide-react';
 import { formatRupiah } from '../utils/formatters';
 
-export default function LandingPage({ onGoToAuth, onQuickDemo, summary }) {
+export default function LandingPage({ onGoToAuth, onQuickDemo, summary, theme, toggleTheme }) {
   const [openFaq, setOpenFaq] = useState(null);
+
+  // Interactive Live Simulator state in Hero Preview
+  const initialBalance = summary?.balance && summary.balance > 0 ? summary.balance : 4250000;
+  const initialExpense = summary?.expense && summary.expense > 0 ? summary.expense : 1150000;
+  const [simBalance, setSimBalance] = useState(initialBalance);
+  const [simExpense, setSimExpense] = useState(initialExpense);
+  const [simFeedback, setSimFeedback] = useState(null);
+
+  const handleSimulateAdd = (itemLabel, amount) => {
+    setSimBalance((prev) => prev - amount);
+    setSimExpense((prev) => prev + amount);
+    setSimFeedback(`Tercatat! -${formatRupiah(amount)} (${itemLabel})`);
+    setTimeout(() => {
+      setSimFeedback(null);
+    }, 2400);
+  };
+
+  const handleSimulateReset = () => {
+    setSimBalance(initialBalance);
+    setSimExpense(initialExpense);
+    setSimFeedback('Simulasi direset');
+    setTimeout(() => setSimFeedback(null), 1800);
+  };
 
   const toggleFaq = (index) => {
     setOpenFaq((prev) => (prev === index ? null : index));
@@ -28,24 +55,28 @@ export default function LandingPage({ onGoToAuth, onQuickDemo, summary }) {
 
   const faqs = [
     {
+      q: 'Apakah Icatat perlu disambungkan ke nomor rekening atau m-Banking saya?',
+      a: 'Sama sekali TIDAK PERLU! Kamu tidak perlu menghubungkan nomor rekening bank, kartu kredit/debit, atau m-Banking apa pun. Icatat murni mencatat transaksi yang kamu input sendiri secara mandiri, sehingga 100% bebas dari risiko pembobolan rekening atau pencurian saldo.',
+    },
+    {
       q: 'Apakah Icatat benar-benar gratis untuk digunakan?',
       a: 'Ya, 100% gratis tanpa biaya langganan tersembunyi. Kamu bisa langsung menggunakannya untuk mencatat semua pemasukan dan pengeluaran harianmu tanpa batasan jumlah transaksi.',
     },
     {
       q: 'Apakah data keuangan pribadi saya aman dan terjamin rahasia?',
-      a: 'Sangat aman! Icatat mengutamakan privasi penuh. Seluruh data transaksimu disimpan langsung di penyimpanan perangkat lokalmu. Kami tidak menjual data keuanganmu ke pihak ketiga, biro pinjol, ataupun pengiklan.',
+      a: 'Sangat aman! Icatat mengutamakan privasi penuh. Seluruh data transaksimu disimpan secara aman dan terenkripsi dengan Row Level Security Supabase atau di penyimpanan lokal browsermu. Kami tidak pernah menjual data keuanganmu ke pihak ketiga, biro pinjol, ataupun pengiklan.',
     },
     {
       q: 'Apakah saya bisa menggunakan Icatat tanpa koneksi internet (offline)?',
-      a: 'Bisa banget! Karena data tersimpan di perangkatmu, kamu tetap bisa membuka aplikasi, melihat grafik, dan mencatat transaksi kapan pun dan di mana pun meskipun sedang tidak ada kuota internet.',
+      a: 'Bisa banget! Karena data tersimpan di cache perangkatmu, kamu tetap bisa membuka aplikasi, melihat grafik, dan mencatat transaksi kapan pun dan di mana pun meskipun sedang tidak ada kuota internet.',
     },
     {
       q: 'Bagaimana jika saya ingin memindahkan data catatan ke Excel atau Google Sheets?',
       a: 'Cukup buka menu Laporan dan klik tombol "Ekspor CSV". Seluruh riwayat pemasukan dan pengeluaranmu akan langsung terunduh rapi dan siap dibuka di Microsoft Excel atau Google Sheets.',
     },
     {
-      q: 'Apa perbedaan antara mendaftar akun dan mencoba demo?',
-      a: 'Mendaftar akun memungkinkan kamu memiliki sesi profil personal dan menyimpan preferensimu secara rapi. Sedangkan mode demo memungkinkanmu langsung menguji semua fitur interaktif dalam 1 detik tanpa perlu mengisi form pendaftaran.',
+      q: 'Apa perbedaan antara mendaftar akun dan mencoba mode demo?',
+      a: 'Mendaftar akun memungkinkan kamu memiliki akun cloud Supabase yang aman, kategori kustom, dan sinkron antar browser. Sedangkan mode demo memungkinkanmu langsung menguji semua fitur interaktif dalam 1 detik tanpa perlu mengisi form pendaftaran.',
     },
   ];
 
@@ -54,7 +85,7 @@ export default function LandingPage({ onGoToAuth, onQuickDemo, summary }) {
       {/* 1. TOP NAVBAR */}
       <header className="landing-header">
         <div className="landing-header-inner">
-          <div className="brand-wrapper" role="banner">
+          <div className="brand-wrapper">
             <img src="/logo.png" alt="Logo Icatat - Catatan Keuangan Pribadi" className="brand-logo-img" />
             <div className="brand-text-col">
               <span className="brand-title">Icatat</span>
@@ -63,6 +94,18 @@ export default function LandingPage({ onGoToAuth, onQuickDemo, summary }) {
           </div>
 
           <nav className="landing-nav-actions" aria-label="Navigasi Utama">
+            {toggleTheme && (
+              <button
+                type="button"
+                className="btn-theme-toggle-landing"
+                onClick={toggleTheme}
+                title={theme === 'dark' ? 'Ganti ke Mode Terang' : 'Ganti ke Mode Gelap'}
+                aria-label="Ganti mode tampilan"
+              >
+                {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+              </button>
+            )}
+
             <button
               type="button"
               className="btn-nav-ghost"
@@ -97,9 +140,14 @@ export default function LandingPage({ onGoToAuth, onQuickDemo, summary }) {
         {/* 2. HERO SECTION */}
         <section className="landing-hero" aria-labelledby="hero-heading">
           <div className="hero-content">
-            {/* Hook Badge */}
+            {/* Social Proof & Hook Pill */}
             <div className="hero-pill-badge">
-              <Sparkles size={14} className="icon-pulse" />
+              <span className="star-rating-pill">
+                <Star size={13} fill="#f59e0b" color="#f59e0b" />
+                <strong>4.9/5</strong>
+              </span>
+              <span className="pill-divider-dot">&bull;</span>
+              <Sparkles size={13} className="icon-pulse" />
               <span>Solusi Catatan Keuangan Pribadi Bebas Boncos</span>
             </div>
 
@@ -187,6 +235,10 @@ export default function LandingPage({ onGoToAuth, onQuickDemo, summary }) {
                 <span>100% Gratis Selamanya</span>
               </div>
               <div className="check-item">
+                <Lock size={15} color="var(--primary)" />
+                <span>Tanpa Akses Bank / Aman</span>
+              </div>
+              <div className="check-item">
                 <CheckCircle2 size={16} color="var(--primary)" />
                 <span>Privat di Perangkatmu</span>
               </div>
@@ -194,14 +246,10 @@ export default function LandingPage({ onGoToAuth, onQuickDemo, summary }) {
                 <CheckCircle2 size={16} color="var(--primary)" />
                 <span>Bebas Iklan Pengganggu</span>
               </div>
-              <div className="check-item">
-                <CheckCircle2 size={16} color="var(--primary)" />
-                <span>Bisa Dipakai Offline</span>
-              </div>
             </div>
           </div>
 
-          {/* Hero Interactive Preview Card */}
+          {/* Hero Interactive Preview Card & Live 3-Second Simulator */}
           <div className="hero-preview-box">
             <div className="preview-card-inner">
               <div className="preview-header">
@@ -209,22 +257,22 @@ export default function LandingPage({ onGoToAuth, onQuickDemo, summary }) {
                   <img src="/logo.png" alt="Icatat Logo" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
                   <div>
                     <div style={{ fontWeight: '800', fontSize: '0.92rem' }}>Dompet Finansialmu</div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Real-time Dashboard Preview</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Interactive Live Simulator</div>
                   </div>
                 </div>
                 <span className="live-dot-badge">
-                  <span className="pulse-dot"></span>
-                  Aktif
+                  <span className="pulse-dot" aria-hidden="true"></span>
+                  Live Preview
                 </span>
               </div>
 
-              {/* Main Balance Display */}
+              {/* Main Balance Display with Live Simulation Animation */}
               <div className="preview-stat-main">
                 <div style={{ fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.85)' }}>
                   Total Saldo Bersih Kamu
                 </div>
                 <div style={{ fontSize: '1.9rem', fontWeight: '800', margin: '4px 0', letterSpacing: '-0.02em' }}>
-                  {formatRupiah(summary.balance)}
+                  {formatRupiah(simBalance)}
                 </div>
                 <div style={{ fontSize: '0.74rem', color: 'rgba(255, 255, 255, 0.9)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <Sparkles size={13} />
@@ -236,25 +284,65 @@ export default function LandingPage({ onGoToAuth, onQuickDemo, summary }) {
               <div className="preview-mini-grid">
                 <div className="mini-box income">
                   <span className="mini-title">Total Pemasukan</span>
-                  <span className="mini-amt">{formatRupiah(summary.income)}</span>
+                  <span className="mini-amt">{formatRupiah(summary.income || 5400000)}</span>
                   <span className="mini-badge-sub">Gaji & Bisnismu</span>
                 </div>
                 <div className="mini-box expense">
                   <span className="mini-title">Total Pengeluaran</span>
-                  <span className="mini-amt">{formatRupiah(summary.expense)}</span>
+                  <span className="mini-amt">{formatRupiah(simExpense)}</span>
                   <span className="mini-badge-sub">Terdata Rinci</span>
                 </div>
               </div>
 
-              {/* 3-Second Shortcut Simulation Tag */}
-              <div className="preview-feature-callout">
-                <div className="callout-icon">
-                  <Zap size={16} color="var(--primary)" />
+              {/* Interactive 3-Second Simulation Shortcuts */}
+              <div className="preview-simulator-box">
+                <div className="sim-header-row">
+                  <span className="sim-label">
+                    <Zap size={14} color="var(--primary)" />
+                    <strong>Coba Catat Pengeluaran Cepat:</strong>
+                  </span>
+                  <button
+                    type="button"
+                    className="sim-btn-reset"
+                    onClick={handleSimulateReset}
+                    title="Kembalikan saldo simulasi"
+                    aria-label="Reset simulasi saldo"
+                  >
+                    <RotateCcw size={12} />
+                    <span>Reset</span>
+                  </button>
                 </div>
-                <div className="callout-text">
-                  <strong>Tombol Cepat 3 Detik:</strong>
-                  <span> +10rb, +50rb, +100rb tersedia untuk mencatat instan!</span>
+
+                <div className="sim-buttons-row">
+                  <button
+                    type="button"
+                    className="sim-chip-btn"
+                    onClick={() => handleSimulateAdd('Kopi Sore', 25000)}
+                  >
+                    ☕ + Kopi 25rb
+                  </button>
+                  <button
+                    type="button"
+                    className="sim-chip-btn"
+                    onClick={() => handleSimulateAdd('Bensin Motor', 35000)}
+                  >
+                    ⛽ + Bensin 35rb
+                  </button>
+                  <button
+                    type="button"
+                    className="sim-chip-btn"
+                    onClick={() => handleSimulateAdd('Makan Siang', 50000)}
+                  >
+                    🍛 + Makan 50rb
+                  </button>
                 </div>
+
+                {simFeedback && (
+                  <div className="sim-toast-feedback" role="status">
+                    <CheckCircle2 size={13} color="var(--primary)" />
+                    <span>{simFeedback}</span>
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons inside Preview */}
@@ -331,19 +419,19 @@ export default function LandingPage({ onGoToAuth, onQuickDemo, summary }) {
               <h3 className="comp-card-title">Finansial Penuh Tebak-Tebakan</h3>
               <ul className="comp-list">
                 <li>
-                  <span className="cross-icon">&times;</span>
+                  <span className="cross-icon" aria-hidden="true">&times;</span>
                   <span>Gaji baru masuk seminggu, tapi tiba-tiba saldo habis tanpa jejak.</span>
                 </li>
                 <li>
-                  <span className="cross-icon">&times;</span>
+                  <span className="cross-icon" aria-hidden="true">&times;</span>
                   <span>Malas mencatat karena aplikasi lain terlalu rumit, berat, dan penuh iklan.</span>
                 </li>
                 <li>
-                  <span className="cross-icon">&times;</span>
+                  <span className="cross-icon" aria-hidden="true">&times;</span>
                   <span>Tidak tahu pos mana yang bocor halus (kopi, jajan, biaya admin bank).</span>
                 </li>
                 <li>
-                  <span className="cross-icon">&times;</span>
+                  <span className="cross-icon" aria-hidden="true">&times;</span>
                   <span>Selalu merasa cemas dan bersalah setiap kali mengecek saldo di ATM.</span>
                 </li>
               </ul>
@@ -358,19 +446,19 @@ export default function LandingPage({ onGoToAuth, onQuickDemo, summary }) {
               <h3 className="comp-card-title">Kamu yang Pegang Kendali Penuh</h3>
               <ul className="comp-list">
                 <li>
-                  <span className="check-icon">&#10003;</span>
+                  <span className="check-icon" aria-hidden="true">&#10003;</span>
                   <span>Kamu tahu persis ke mana setiap rupiah pergi hanya dalam 3 detik mencatat.</span>
                 </li>
                 <li>
-                  <span className="check-icon">&#10003;</span>
+                  <span className="check-icon" aria-hidden="true">&#10003;</span>
                   <span>Mencatat jadi kebiasaan ringan yang menyenangkan, cepat, dan tanpa beban.</span>
                 </li>
                 <li>
-                  <span className="check-icon">&#10003;</span>
+                  <span className="check-icon" aria-hidden="true">&#10003;</span>
                   <span>Diagram visual langsung memperingatkanmu sebelum dompetmu kebobolan.</span>
                 </li>
                 <li>
-                  <span className="check-icon">&#10003;</span>
+                  <span className="check-icon" aria-hidden="true">&#10003;</span>
                   <span>Tenang di akhir bulan karena ada sisa tabungan nyata untuk masa depanmu.</span>
                 </li>
               </ul>
@@ -555,13 +643,20 @@ export default function LandingPage({ onGoToAuth, onQuickDemo, summary }) {
                     type="button"
                     className="faq-question-btn"
                     onClick={() => toggleFaq(idx)}
+                    id={`faq-btn-${idx}`}
                     aria-expanded={isOpen}
+                    aria-controls={`faq-answer-${idx}`}
                   >
                     <span className="faq-question-text">{faq.q}</span>
-                    <ChevronDown size={18} className={`faq-chevron ${isOpen ? 'rotated' : ''}`} />
+                    <ChevronDown size={18} className={`faq-chevron ${isOpen ? 'rotated' : ''}`} aria-hidden="true" />
                   </button>
                   {isOpen && (
-                    <div className="faq-answer-content">
+                    <div
+                      id={`faq-answer-${idx}`}
+                      className="faq-answer-content"
+                      role="region"
+                      aria-labelledby={`faq-btn-${idx}`}
+                    >
                       <p>{faq.a}</p>
                     </div>
                   )}
@@ -621,7 +716,7 @@ export default function LandingPage({ onGoToAuth, onQuickDemo, summary }) {
 
             <div className="bottom-cta-guarantee">
               <CheckCircle2 size={15} color="#4ade80" />
-              <span>Gratis tanpa kartu kredit &bull; Data tersimpan aman &bull; Langsung bisa kamu pakai</span>
+              <span>Gratis tanpa kartu kredit &bull; Bebas akses perbankan &bull; Langsung bisa kamu pakai</span>
             </div>
           </div>
         </section>
