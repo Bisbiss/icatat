@@ -88,3 +88,43 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ========================================================
+-- 6. Tabel Kategori Kustom Pengguna (Custom Categories)
+-- ========================================================
+CREATE TABLE IF NOT EXISTS public.categories (
+  id TEXT PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
+  name TEXT NOT NULL,
+  icon TEXT NOT NULL DEFAULT 'ShoppingBag',
+  color TEXT NOT NULL DEFAULT '#16a34a',
+  bg TEXT NOT NULL DEFAULT 'rgba(22, 163, 74, 0.12)',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "User dapat melihat kategori miliknya" ON public.categories;
+CREATE POLICY "User dapat melihat kategori miliknya"
+  ON public.categories FOR SELECT
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "User dapat menambah kategori miliknya" ON public.categories;
+CREATE POLICY "User dapat menambah kategori miliknya"
+  ON public.categories FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "User dapat mengubah kategori miliknya" ON public.categories;
+CREATE POLICY "User dapat mengubah kategori miliknya"
+  ON public.categories FOR UPDATE
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "User dapat menghapus kategori miliknya" ON public.categories;
+CREATE POLICY "User dapat menghapus kategori miliknya"
+  ON public.categories FOR DELETE
+  USING (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS idx_categories_user_type 
+  ON public.categories(user_id, type);
+

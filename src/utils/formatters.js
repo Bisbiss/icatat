@@ -20,13 +20,42 @@ export const formatDateIndo = (dateStr) => {
   }).format(date);
 };
 
-export const getCategoryMeta = (categoryId, type) => {
-  const list = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
-  const found = list.find((c) => c.id === categoryId);
-  if (found) return found;
+let globalCategories = {
+  expense: EXPENSE_CATEGORIES,
+  income: INCOME_CATEGORIES,
+};
+
+export const setGlobalCategories = (cats) => {
+  if (cats && cats.expense && cats.income) {
+    globalCategories = cats;
+  }
+};
+
+export const getCategoryMeta = (categoryId, type, overrideList) => {
+  // If specific list passed, check it first
+  if (overrideList && Array.isArray(overrideList)) {
+    const found = overrideList.find((c) => c.id === categoryId);
+    if (found) return found;
+  }
+
+  // Check current global custom categories
+  const primaryList = type === 'income' ? globalCategories.income : globalCategories.expense;
+  const foundPrimary = primaryList?.find((c) => c.id === categoryId);
+  if (foundPrimary) return foundPrimary;
+
+  // Check alternate list in case type mismatched
+  const secondaryList = type === 'income' ? globalCategories.expense : globalCategories.income;
+  const foundSecondary = secondaryList?.find((c) => c.id === categoryId);
+  if (foundSecondary) return foundSecondary;
+
+  // Fallback to initial defaults
+  const fallbackList = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const foundFallback = fallbackList.find((c) => c.id === categoryId);
+  if (foundFallback) return foundFallback;
+
   return {
     id: categoryId,
-    name: 'Lainnya',
+    name: categoryId || 'Lainnya',
     icon: 'Coins',
     color: '#64748b',
     bg: 'rgba(100, 116, 139, 0.12)',

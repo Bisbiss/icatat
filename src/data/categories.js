@@ -18,7 +18,54 @@ export const INCOME_CATEGORIES = [
   { id: 'lainnya_masuk', name: 'Pemasukan Lain', icon: 'Coins', color: '#64748b', bg: 'rgba(100, 116, 139, 0.12)' },
 ];
 
-// Helper to get today's date in YYYY-MM-DD
+export const AVAILABLE_CATEGORY_ICONS = [
+  { name: 'Utensils', label: 'Makanan' },
+  { name: 'Coffee', label: 'Kopi & Kafe' },
+  { name: 'Car', label: 'Mobil / Motor' },
+  { name: 'Fuel', label: 'Bensin & BBM' },
+  { name: 'ShoppingBag', label: 'Belanja' },
+  { name: 'ShoppingBasket', label: 'Supermarket' },
+  { name: 'Receipt', label: 'Tagihan' },
+  { name: 'Home', label: 'Rumah & Kos' },
+  { name: 'Tv', label: 'Streaming & TV' },
+  { name: 'Gamepad2', label: 'Game & Hobi' },
+  { name: 'Film', label: 'Bioskop' },
+  { name: 'Music', label: 'Musik & Konser' },
+  { name: 'HeartPulse', label: 'Kesehatan' },
+  { name: 'Dumbbell', label: 'Gym & Olahraga' },
+  { name: 'GraduationCap', label: 'Pendidikan' },
+  { name: 'Book', label: 'Buku & Literasi' },
+  { name: 'Briefcase', label: 'Gaji & Kantor' },
+  { name: 'Building', label: 'Bisnis & Toko' },
+  { name: 'TrendingUp', label: 'Investasi' },
+  { name: 'Sparkles', label: 'Freelance' },
+  { name: 'Gift', label: 'Hadiah / THR' },
+  { name: 'DollarSign', label: 'Keuangan' },
+  { name: 'Wallet', label: 'Dompet' },
+  { name: 'CreditCard', label: 'Kartu Kredit' },
+  { name: 'Smartphone', label: 'Pulsa & Kuota' },
+  { name: 'Plane', label: 'Liburan & Travel' },
+  { name: 'Package', label: 'Paket & Logistik' },
+  { name: 'Wrench', label: 'Servis & Alat' },
+  { name: 'Baby', label: 'Anak & Bayi' },
+  { name: 'Dog', label: 'Hewan Peliharaan' },
+  { name: 'Coins', label: 'Lain-lain' },
+];
+
+export const AVAILABLE_CATEGORY_COLORS = [
+  { color: '#f97316', bg: 'rgba(249, 115, 22, 0.14)', name: 'Oranye' },
+  { color: '#0ea5e9', bg: 'rgba(14, 165, 233, 0.14)', name: 'Biru Langit' },
+  { color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.14)', name: 'Ungu' },
+  { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.14)', name: 'Merah' },
+  { color: '#ec4899', bg: 'rgba(236, 72, 153, 0.14)', name: 'Pink' },
+  { color: '#10b981', bg: 'rgba(16, 185, 129, 0.14)', name: 'Hijau Zamrud' },
+  { color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.14)', name: 'Biru Safir' },
+  { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.14)', name: 'Kuning Amber' },
+  { color: '#14b8a6', bg: 'rgba(20, 184, 166, 0.14)', name: 'Teal' },
+  { color: '#6366f1', bg: 'rgba(99, 102, 241, 0.14)', name: 'Indigo' },
+  { color: '#84cc16', bg: 'rgba(132, 204, 22, 0.14)', name: 'Lime' },
+  { color: '#64748b', bg: 'rgba(100, 116, 139, 0.14)', name: 'Slate' },
+];
 const getToday = (offsetDays = 0) => {
   const d = new Date();
   d.setDate(d.getDate() - offsetDays);

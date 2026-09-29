@@ -1,16 +1,14 @@
 import React from 'react';
 import {
-  User,
   Sun,
   Moon,
   Download,
   RotateCcw,
   Trash2,
   LogOut,
-  ShieldCheck,
   CreditCard,
   ChevronRight,
-  Info,
+  Tags,
 } from 'lucide-react';
 
 export default function SettingView({
@@ -21,8 +19,11 @@ export default function SettingView({
   onExportCSV,
   onResetData,
   onClearAllData,
+  categories,
+  onOpenCategoryManager,
 }) {
   const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : 'U';
+  const totalCategories = (categories?.expense?.length || 0) + (categories?.income?.length || 0);
 
   return (
     <div className="setting-view-wrapper">
@@ -98,6 +99,30 @@ export default function SettingView({
           </div>
           <span style={{ fontSize: '0.82rem', fontWeight: '600', color: 'var(--text-muted)' }}>IDR</span>
         </div>
+      </div>
+
+      {/* Section: Kelola Kategori */}
+      <div className="analysis-card" style={{ marginBottom: '1.25rem' }}>
+        <h4 className="setting-group-title">Kustomisasi Kategori</h4>
+
+        <button
+          type="button"
+          className="setting-action-row-btn"
+          onClick={onOpenCategoryManager}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div className="setting-icon-pill" style={{ background: 'var(--primary-light)', color: 'var(--primary)' }}>
+              <Tags size={18} />
+            </div>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontWeight: '600', fontSize: '0.92rem' }}>Kelola Kategori Transaksi</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                Ubah, tambah, atur warna & ikon ({totalCategories} kategori)
+              </div>
+            </div>
+          </div>
+          <ChevronRight size={18} color="var(--text-muted)" />
+        </button>
       </div>
 
       {/* Section: Manajemen Data */}

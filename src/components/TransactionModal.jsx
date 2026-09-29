@@ -1,23 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { X, ArrowDownLeft, ArrowUpRight, Check } from 'lucide-react';
+import { X, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../data/categories';
 import CategoryIcon from './CategoryIcon';
 
-export default function TransactionModal({ isOpen, onClose, onAddTransaction }) {
+export default function TransactionModal({
+  isOpen,
+  onClose,
+  onAddTransaction,
+  expenseCategories = EXPENSE_CATEGORIES,
+  incomeCategories = INCOME_CATEGORIES,
+}) {
   const [type, setType] = useState('expense');
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState(EXPENSE_CATEGORIES[0].id);
+  const [category, setCategory] = useState(() => expenseCategories[0]?.id || 'makanan');
   const [note, setNote] = useState('');
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
 
-  // Update selected category when type changes
+  // Update selected category when type or category list changes
   useEffect(() => {
     if (type === 'expense') {
-      setCategory(EXPENSE_CATEGORIES[0].id);
+      setCategory(expenseCategories[0]?.id || '');
     } else {
-      setCategory(INCOME_CATEGORIES[0].id);
+      setCategory(incomeCategories[0]?.id || '');
     }
-  }, [type]);
+  }, [type, expenseCategories, incomeCategories]);
 
   // Reset form when modal opens
   useEffect(() => {
@@ -26,7 +32,7 @@ export default function TransactionModal({ isOpen, onClose, onAddTransaction }) 
       setNote('');
       setDate(new Date().toISOString().split('T')[0]);
       setType('expense');
-      setCategory(EXPENSE_CATEGORIES[0].id);
+      setCategory(expenseCategories[0]?.id || '');
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -34,7 +40,7 @@ export default function TransactionModal({ isOpen, onClose, onAddTransaction }) 
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isOpen]);
+  }, [isOpen, expenseCategories]);
 
   // ESC to close
   useEffect(() => {
@@ -47,7 +53,7 @@ export default function TransactionModal({ isOpen, onClose, onAddTransaction }) 
 
   if (!isOpen) return null;
 
-  const currentCategories = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+  const currentCategories = type === 'expense' ? expenseCategories : incomeCategories;
 
   const handleQuickAddAmount = (addVal) => {
     const current = parseInt(amount.replace(/\D/g, '') || '0', 10);

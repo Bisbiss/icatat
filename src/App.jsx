@@ -7,14 +7,21 @@ import ReportView from './pages/ReportView';
 import SettingView from './pages/SettingView';
 import BottomNav from './components/BottomNav';
 import TransactionModal from './components/TransactionModal';
-import { INITIAL_TRANSACTIONS } from './data/categories';
-import { downloadCSV } from './utils/formatters';
+import CategoryManagerModal from './components/CategoryManagerModal';
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, INITIAL_TRANSACTIONS } from './data/categories';
+import { downloadCSV, setGlobalCategories } from './utils/formatters';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { CheckCircle2, Sun, Moon, LogOut } from 'lucide-react';
 
 const STORAGE_KEY = 'icatat_transactions_data';
 const THEME_KEY = 'icatat_theme_mode';
 const USER_KEY = 'icatat_user_session';
+const CATEGORIES_KEY_PREFIX = 'icatat_user_categories_';
+
+const DEFAULT_CATEGORIES = {
+  expense: EXPENSE_CATEGORIES,
+  income: INCOME_CATEGORIES,
+};
 
 export default function App() {
   // Theme state
@@ -53,7 +60,31 @@ export default function App() {
   // Dashboard Active Tab: 'dashboard' | 'transaksi' | 'report' | 'setting'
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+
+  // User Categories state (per-user / offline / Supabase synced)
+  const [categories, setCategories] = useState(() => {
+    try {
+      const userKey = user?.id || 'default';
+      const saved = localStorage.getItem(CATEGORIES_KEY_PREFIX + userKey);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Error loading stored categories', e);
+    }
+    return DEFAULT_CATEGORIES;
+  });
+
+  // Sinkronisasi kategori ke formatter global & localStorage
+  useEffect(() => {
+    setGlobalCategories(categories);
+    try {
+      const userKey = user?.id || 'default';
+      localStorage.setItem(CATEGORIES_KEY_PREFIX + userKey, JSON.stringify(categories));
+    } catch (e) {
+      console.error('Error saving categories to localStorage', e);
+    }
+  }, [categories, user?.id]);
 
   // Transactions state
   const [transactions, setTransactions] = useState(() => {
@@ -106,6 +137,36 @@ export default function App() {
     }
   }, []);
 
+  // Sinkronisasi data kategori dari Supabase jika user logged in
+  const loadSupabaseCategories = useCallback(async (userId) => {
+    if (!isSupabaseConfigured || !userId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (error) {
+        if (error.code !== 'PGRST205') {
+          console.warn('[Supabase] Gagal mengambil data kategori:', error.message);
+        }
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const exp = data.filter((c) => c.type === 'expense');
+        const inc = data.filter((c) => c.type === 'income');
+        setCategories({
+          expense: exp.length > 0 ? exp : DEFAULT_CATEGORIES.expense,
+          income: inc.length > 0 ? inc : DEFAULT_CATEGORIES.income,
+        });
+      }
+    } catch (err) {
+      console.error('[Supabase] Error loading categories:', err);
+    }
+  }, []);
+
   // Supabase Auth listener & Session restore
   useEffect(() => {
     if (!isSupabaseConfigured) return;
@@ -124,6 +185,7 @@ export default function App() {
         localStorage.setItem(USER_KEY, JSON.stringify(supaUser));
         setView('app');
         loadSupabaseTransactions(session.user.id);
+        loadSupabaseCategories(session.user.id);
       }
     });
 
@@ -143,9 +205,11 @@ export default function App() {
         localStorage.setItem(USER_KEY, JSON.stringify(supaUser));
         setView('app');
         loadSupabaseTransactions(session.user.id);
+        loadSupabaseCategories(session.user.id);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         localStorage.removeItem(USER_KEY);
+        setCategories(DEFAULT_CATEGORIES);
         setView('landing');
       }
     });
@@ -153,7 +217,7 @@ export default function App() {
     return () => {
       subscription?.unsubscribe();
     };
-  }, [loadSupabaseTransactions]);
+  }, [loadSupabaseTransactions, loadSupabaseCategories]);
 
   // Simpan transaksi lokal sebagai cache
   useEffect(() => {
@@ -200,6 +264,7 @@ export default function App() {
 
     if (userData.id && !userData.isDemo) {
       loadSupabaseTransactions(userData.id);
+      loadSupabaseCategories(userData.id);
     }
   };
 
@@ -225,8 +290,104 @@ export default function App() {
       }
       setUser(null);
       localStorage.removeItem(USER_KEY);
+      setCategories(DEFAULT_CATEGORIES);
       setView('landing');
       showToast('Anda telah keluar.');
+    }
+  };
+
+  // Category Actions
+  const handleSaveCategory = async (categoryData, isEdit, oldId) => {
+    const type = categoryData.type;
+    setCategories((prev) => {
+      const list = prev[type] || [];
+      let nextList;
+      if (isEdit) {
+        nextList = list.map((c) => (c.id === oldId ? categoryData : c));
+      } else {
+        nextList = [...list, categoryData];
+      }
+      return {
+        ...prev,
+        [type]: nextList,
+      };
+    });
+
+    showToast(
+      isEdit
+        ? `Kategori "${categoryData.name}" berhasil diubah!`
+        : `Kategori "${categoryData.name}" berhasil ditambahkan!`
+    );
+
+    // Sinkronkan ke Supabase jika login sebagai user cloud
+    if (user && !user.isDemo && isSupabaseConfigured && user.id) {
+      try {
+        if (isEdit) {
+          await supabase
+            .from('categories')
+            .update({
+              name: categoryData.name,
+              icon: categoryData.icon,
+              color: categoryData.color,
+              bg: categoryData.bg,
+            })
+            .eq('id', oldId)
+            .eq('user_id', user.id);
+        } else {
+          await supabase.from('categories').insert([
+            {
+              id: categoryData.id,
+              user_id: user.id,
+              type: categoryData.type,
+              name: categoryData.name,
+              icon: categoryData.icon,
+              color: categoryData.color,
+              bg: categoryData.bg,
+            },
+          ]);
+        }
+      } catch (err) {
+        console.warn('[Supabase] Gagal menyimpan kategori ke cloud:', err);
+      }
+    }
+  };
+
+  const handleDeleteCategory = async (categoryId, type) => {
+    setCategories((prev) => ({
+      ...prev,
+      [type]: (prev[type] || []).filter((c) => c.id !== categoryId),
+    }));
+    showToast('Kategori berhasil dihapus.');
+
+    if (user && !user.isDemo && isSupabaseConfigured && user.id) {
+      try {
+        await supabase
+          .from('categories')
+          .delete()
+          .eq('id', categoryId)
+          .eq('user_id', user.id);
+      } catch (err) {
+        console.warn('[Supabase] Gagal menghapus kategori di cloud:', err);
+      }
+    }
+  };
+
+  const handleResetCategories = async () => {
+    if (
+      window.confirm(
+        'Kembalikan semua kategori ke daftar bawaan awal? Kategori kustom akan direset.'
+      )
+    ) {
+      setCategories(DEFAULT_CATEGORIES);
+      showToast('Kategori telah direset ke bawaan awal.');
+
+      if (user && !user.isDemo && isSupabaseConfigured && user.id) {
+        try {
+          await supabase.from('categories').delete().eq('user_id', user.id);
+        } catch (err) {
+          console.warn('[Supabase] Gagal reset kategori di cloud:', err);
+        }
+      }
     }
   };
 
@@ -421,6 +582,8 @@ export default function App() {
             onExportCSV={handleExportCSV}
             onResetData={handleResetData}
             onClearAllData={handleClearAllData}
+            categories={categories}
+            onOpenCategoryManager={() => setIsCategoryModalOpen(true)}
           />
         )}
       </main>
@@ -437,6 +600,19 @@ export default function App() {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAddTransaction={handleAddTransaction}
+        expenseCategories={categories.expense}
+        incomeCategories={categories.income}
+      />
+
+      {/* Category Manager Modal */}
+      <CategoryManagerModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        categories={categories}
+        onSaveCategory={handleSaveCategory}
+        onDeleteCategory={handleDeleteCategory}
+        onResetCategories={handleResetCategories}
+        transactions={transactions}
       />
 
       {/* Toast Notification */}
