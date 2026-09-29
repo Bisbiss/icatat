@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import DashboardView from './pages/DashboardView';
@@ -9,6 +9,7 @@ import BottomNav from './components/BottomNav';
 import TransactionModal from './components/TransactionModal';
 import { INITIAL_TRANSACTIONS } from './data/categories';
 import { downloadCSV } from './utils/formatters';
+import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { CheckCircle2, Sun, Moon, LogOut } from 'lucide-react';
 
 const STORAGE_KEY = 'icatat_transactions_data';
@@ -65,6 +66,96 @@ export default function App() {
     return INITIAL_TRANSACTIONS;
   });
 
+  // Toast trigger
+  const showToast = useCallback((msg) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 3200);
+  }, []);
+
+  // Sinkronisasi data transaksi dari Supabase jika user logged in
+  const loadSupabaseTransactions = useCallback(async (userId) => {
+    if (!isSupabaseConfigured || !userId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('date', { ascending: false });
+
+      if (error) {
+        if (error.code === 'PGRST205') {
+          console.warn('[Supabase] Tabel "transactions" belum dibuat di database.');
+        } else {
+          console.warn('[Supabase] Gagal mengambil data transaksi:', error.message);
+        }
+        return;
+      }
+
+      if (data) {
+        const mapped = data.map((t) => ({
+          ...t,
+          amount: Number(t.amount) || 0,
+        }));
+        setTransactions(mapped);
+      }
+    } catch (err) {
+      console.error('[Supabase] Error loading transactions:', err);
+    }
+  }, []);
+
+  // Supabase Auth listener & Session restore
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
+    // 1. Ambil session aktif saat aplikasi dibuka
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const supaUser = {
+          id: session.user.id,
+          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Pengguna',
+          email: session.user.email,
+          isLoggedIn: true,
+          isDemo: false,
+        };
+        setUser(supaUser);
+        localStorage.setItem(USER_KEY, JSON.stringify(supaUser));
+        setView('app');
+        loadSupabaseTransactions(session.user.id);
+      }
+    });
+
+    // 2. Dengarkan perubahan status login/logout secara realtime
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        const supaUser = {
+          id: session.user.id,
+          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Pengguna',
+          email: session.user.email,
+          isLoggedIn: true,
+          isDemo: false,
+        };
+        setUser(supaUser);
+        localStorage.setItem(USER_KEY, JSON.stringify(supaUser));
+        setView('app');
+        loadSupabaseTransactions(session.user.id);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        localStorage.removeItem(USER_KEY);
+        setView('landing');
+      }
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, [loadSupabaseTransactions]);
+
+  // Simpan transaksi lokal sebagai cache
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
@@ -72,14 +163,6 @@ export default function App() {
       console.error('Error saving transactions to localStorage', e);
     }
   }, [transactions]);
-
-  // Toast trigger
-  const showToast = (msg) => {
-    setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 2800);
-  };
 
   // Financial summary calculations
   const summary = useMemo(() => {
@@ -114,10 +197,15 @@ export default function App() {
     setView('app');
     setActiveTab('dashboard');
     showToast(`Selamat datang, ${userData.name}!`);
+
+    if (userData.id && !userData.isDemo) {
+      loadSupabaseTransactions(userData.id);
+    }
   };
 
   const handleQuickDemo = () => {
     const demoUser = {
+      id: 'demo-user-id',
       name: 'Pengguna Demo',
       email: 'demo@icatat.id',
       isLoggedIn: true,
@@ -126,8 +214,15 @@ export default function App() {
     handleAuthSuccess(demoUser);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (window.confirm('Apakah Anda yakin ingin keluar?')) {
+      if (isSupabaseConfigured && user && !user.isDemo) {
+        try {
+          await supabase.auth.signOut();
+        } catch (err) {
+          console.error('Error signing out of Supabase:', err);
+        }
+      }
       setUser(null);
       localStorage.removeItem(USER_KEY);
       setView('landing');
@@ -139,11 +234,48 @@ export default function App() {
   const handleAddTransaction = (newTx) => {
     setTransactions((prev) => [newTx, ...prev]);
     showToast(`Transaksi "${newTx.note}" berhasil dicatat!`);
+
+    // Sinkronisasi ke Supabase jika login sebagai user cloud
+    if (user && !user.isDemo && isSupabaseConfigured && user.id) {
+      supabase
+        .from('transactions')
+        .insert([
+          {
+            id: newTx.id,
+            user_id: user.id,
+            type: newTx.type,
+            category: newTx.category,
+            amount: newTx.amount,
+            note: newTx.note,
+            date: newTx.date,
+          },
+        ])
+        .then(({ error }) => {
+          if (error) {
+            console.warn('[Supabase] Gagal menyimpan transaksi ke database:', error);
+            if (error.code === 'PGRST205') {
+              showToast('Perhatian: Tabel "transactions" belum dibuat di Supabase. Data disimpan di lokal browser.');
+            }
+          }
+        });
+    }
   };
 
   const handleDeleteTransaction = (id) => {
     setTransactions((prev) => prev.filter((t) => t.id !== id));
     showToast('Transaksi berhasil dihapus.');
+
+    if (user && !user.isDemo && isSupabaseConfigured) {
+      supabase
+        .from('transactions')
+        .delete()
+        .eq('id', id)
+        .then(({ error }) => {
+          if (error) {
+            console.warn('[Supabase] Gagal menghapus transaksi dari database:', error);
+          }
+        });
+    }
   };
 
   const handleResetData = () => {
@@ -153,9 +285,12 @@ export default function App() {
     }
   };
 
-  const handleClearAllData = () => {
+  const handleClearAllData = async () => {
     if (window.confirm('PERINGATAN: Semua riwayat transaksi akan dihapus permanen. Lanjutkan?')) {
       setTransactions([]);
+      if (user && !user.isDemo && isSupabaseConfigured && user.id) {
+        await supabase.from('transactions').delete().eq('user_id', user.id);
+      }
       showToast('Semua transaksi telah dikosongkan.');
     }
   };

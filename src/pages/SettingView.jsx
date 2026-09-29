@@ -45,7 +45,15 @@ export default function SettingView({
             <h3 style={{ fontSize: '1.05rem', fontWeight: '700' }}>{user?.name || 'Pengguna Icatat'}</h3>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{user?.email || 'user@icatat.id'}</p>
           </div>
-          <span className="badge-active-status">Akun Aktif</span>
+          {user?.isDemo ? (
+            <span className="badge-active-status" style={{ background: 'var(--warning-bg)', color: 'var(--warning)' }}>
+              Mode Demo
+            </span>
+          ) : (
+            <span className="badge-active-status" style={{ background: 'var(--primary-light)', color: 'var(--primary)' }}>
+              Supabase Cloud
+            </span>
+          )}
         </div>
       </div>
 
