@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
+import PrivacyPage from './pages/PrivacyPage';
 import DashboardView from './pages/DashboardView';
 import TransactionView from './pages/TransactionView';
 import ReportView from './pages/ReportView';
@@ -49,7 +50,7 @@ export default function App() {
     return null;
   });
 
-  // Current top-level view: 'landing' | 'auth' | 'app'
+  // Current top-level view: 'landing' | 'auth' | 'privacy' | 'app'
   const [view, setView] = useState(() => {
     const savedUser = localStorage.getItem(USER_KEY);
     return savedUser ? 'app' : 'landing';
@@ -475,6 +476,7 @@ export default function App() {
             setView('auth');
           }}
           onQuickDemo={handleQuickDemo}
+          onOpenPrivacy={() => setView('privacy')}
           summary={summary}
           theme={theme}
           toggleTheme={toggleTheme}
@@ -489,7 +491,22 @@ export default function App() {
     );
   }
 
-  // 2. Auth Page View
+  // 2. Privacy Policy Page View
+  if (view === 'privacy') {
+    return (
+      <>
+        <PrivacyPage onBack={() => setView('landing')} />
+        {toastMessage && (
+          <div className="toast-container" role="status">
+            <CheckCircle2 size={18} color="#16a34a" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  // 3. Auth Page View
   if (view === 'auth') {
     return (
       <>
@@ -508,7 +525,7 @@ export default function App() {
     );
   }
 
-  // 3. Main Dashboard Application (with Bottom Navigation Bar)
+  // 4. Main Dashboard Application (with Bottom Navigation Bar)
   return (
     <>
       {/* Top Header */}

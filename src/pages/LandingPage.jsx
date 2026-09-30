@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { formatRupiah } from '../utils/formatters';
 
-export default function LandingPage({ onGoToAuth, onQuickDemo, summary, theme, toggleTheme }) {
+export default function LandingPage({ onGoToAuth, onQuickDemo, onOpenPrivacy, summary, theme, toggleTheme }) {
   const [openFaq, setOpenFaq] = useState(null);
 
   // Interactive Live Simulator state in Hero Preview
@@ -240,7 +240,7 @@ export default function LandingPage({ onGoToAuth, onQuickDemo, summary, theme, t
               </div>
               <div className="check-item">
                 <CheckCircle2 size={16} color="var(--primary)" />
-                <span>Privat di Perangkatmu</span>
+                <span>Privasi Terjaga</span>
               </div>
               <div className="check-item">
                 <CheckCircle2 size={16} color="var(--primary)" />
@@ -384,7 +384,7 @@ export default function LandingPage({ onGoToAuth, onQuickDemo, summary, theme, t
                 <ShieldCheck size={20} className="metric-icon text-primary" />
                 <span>100%</span>
               </div>
-              <div className="metric-label">Data privat di perangkatmu tanpa pelacak pihak ketiga</div>
+              <div className="metric-label">Data tersimpan aman &amp; privat — tanpa iklan, tanpa penjualan data</div>
             </div>
             <div className="metric-divider" />
             <div className="metric-col">
@@ -523,13 +523,13 @@ export default function LandingPage({ onGoToAuth, onQuickDemo, summary, theme, t
                 </div>
                 <span className="feature-tag">100% Aman</span>
               </div>
-              <h3>Privasi Mutlak di Perangkatmu</h3>
+              <h3>Privasi Terjaga, Tanpa Iklan</h3>
               <p className="feature-desc">
-                Data keuanganmu disimpan langsung secara lokal di browsermu tanpa pelacak dan tanpa iklan pihak ketiga.
+                Catatanmu tersimpan lokal di perangkatmu — atau aman di cloud pribadimu saat kamu masuk akun. Tanpa iklan, tanpa pelacak iklan, dan datamu tidak pernah dijual ke pihak mana pun.
               </p>
               <div className="feature-benefit-box">
                 <strong>👉 Manfaat Untukmu:</strong>
-                <span>Ketenangan pikiran total. Rahasia finansialmu tetap jadi privasimu—tidak ada risiko datamu dijual ke pihak luar atau penawaran pinjol.</span>
+                <span>Ketenangan pikiran total. Rahasia finansialmu tetap jadi privasimu — tidak ada risiko datamu dijual ke pihak luar atau dipakai untuk penawaran pinjol.</span>
               </div>
             </div>
 
@@ -745,8 +745,12 @@ export default function LandingPage({ onGoToAuth, onQuickDemo, summary, theme, t
             <div className="footer-link-group">
               <strong>Keunggulan</strong>
               <span>Input 3 Detik</span>
-              <span>100% Data Privat</span>
+              <span>Privasi Terjaga</span>
               <span>Ekspor Laporan CSV</span>
+            </div>
+            <div className="footer-link-group">
+              <strong>Informasi</strong>
+              <button type="button" onClick={onOpenPrivacy} className="footer-btn-link">Kebijakan Privasi</button>
             </div>
           </div>
         </div>
