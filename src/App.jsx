@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import PrivacyPage from './pages/PrivacyPage';
+import AdminView from './pages/AdminView';
 import DashboardView from './pages/DashboardView';
 import TransactionView from './pages/TransactionView';
 import ReportView from './pages/ReportView';
@@ -50,11 +51,32 @@ export default function App() {
     return null;
   });
 
-  // Current top-level view: 'landing' | 'auth' | 'privacy' | 'app'
+  // Current top-level view: 'landing' | 'auth' | 'privacy' | 'admin' | 'app'
   const [view, setView] = useState(() => {
     const savedUser = localStorage.getItem(USER_KEY);
     return savedUser ? 'app' : 'landing';
   });
+
+  // Apakah user yang login memiliki role admin (dicek dari tabel profiles).
+  // Ini hanya untuk gating tampilan; penegakan akses sebenarnya ada di RLS Supabase.
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const checkAdminRole = useCallback(async (userId, isDemoUser) => {
+    if (!isSupabaseConfigured || !userId || isDemoUser) {
+      setIsAdmin(false);
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
+      setIsAdmin(!error && data?.role === 'admin');
+    } catch {
+      setIsAdmin(false);
+    }
+  }, []);
 
   const [authMode, setAuthMode] = useState('login'); // 'login' or 'register'
 
@@ -187,6 +209,7 @@ export default function App() {
         setView('app');
         loadSupabaseTransactions(session.user.id);
         loadSupabaseCategories(session.user.id);
+        checkAdminRole(session.user.id, false);
       }
     });
 
@@ -207,8 +230,10 @@ export default function App() {
         setView('app');
         loadSupabaseTransactions(session.user.id);
         loadSupabaseCategories(session.user.id);
+        checkAdminRole(session.user.id, false);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
+        setIsAdmin(false);
         localStorage.removeItem(USER_KEY);
         setCategories(DEFAULT_CATEGORIES);
         setView('landing');
@@ -218,7 +243,7 @@ export default function App() {
     return () => {
       subscription?.unsubscribe();
     };
-  }, [loadSupabaseTransactions, loadSupabaseCategories]);
+  }, [loadSupabaseTransactions, loadSupabaseCategories, checkAdminRole]);
 
   // Simpan transaksi lokal sebagai cache
   useEffect(() => {
@@ -262,6 +287,7 @@ export default function App() {
     setView('app');
     setActiveTab('dashboard');
     showToast(`Selamat datang, ${userData.name}!`);
+    checkAdminRole(userData.id, userData.isDemo);
 
     if (userData.id && !userData.isDemo) {
       loadSupabaseTransactions(userData.id);
@@ -290,6 +316,7 @@ export default function App() {
         }
       }
       setUser(null);
+      setIsAdmin(false);
       localStorage.removeItem(USER_KEY);
       setCategories(DEFAULT_CATEGORIES);
       setView('landing');
@@ -525,7 +552,25 @@ export default function App() {
     );
   }
 
-  // 4. Main Dashboard Application (with Bottom Navigation Bar)
+  // 4. Admin Panel View (hanya untuk role admin; RLS menegakkan akses sebenarnya)
+  if (view === 'admin') {
+    return (
+      <>
+        <AdminView
+          onBack={() => setView('app')}
+          currentUserId={user?.isDemo ? null : user?.id}
+        />
+        {toastMessage && (
+          <div className="toast-container" role="status">
+            <CheckCircle2 size={18} color="#16a34a" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  // 5. Main Dashboard Application (with Bottom Navigation Bar)
   return (
     <>
       {/* Top Header */}
@@ -603,6 +648,8 @@ export default function App() {
             onClearAllData={handleClearAllData}
             categories={categories}
             onOpenCategoryManager={() => setIsCategoryModalOpen(true)}
+            isAdmin={isAdmin}
+            onOpenAdmin={() => setView('admin')}
           />
         )}
       </main>
