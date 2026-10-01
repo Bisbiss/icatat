@@ -9,6 +9,7 @@ import {
   CreditCard,
   ChevronRight,
   Tags,
+  ShieldCheck,
 } from 'lucide-react';
 
 export default function SettingView({
@@ -21,6 +22,8 @@ export default function SettingView({
   onClearAllData,
   categories,
   onOpenCategoryManager,
+  isAdmin,
+  onOpenAdmin,
 }) {
   const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : 'U';
   const totalCategories = (categories?.expense?.length || 0) + (categories?.income?.length || 0);
@@ -124,6 +127,32 @@ export default function SettingView({
           <ChevronRight size={18} color="var(--text-muted)" />
         </button>
       </div>
+
+      {/* Section: Administrasi (hanya untuk admin) */}
+      {isAdmin && (
+        <div className="analysis-card" style={{ marginBottom: '1.25rem' }}>
+          <h4 className="setting-group-title">Administrasi</h4>
+
+          <button
+            type="button"
+            className="setting-action-row-btn"
+            onClick={onOpenAdmin}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div className="setting-icon-pill" style={{ background: 'var(--primary-light)', color: 'var(--primary)' }}>
+                <ShieldCheck size={18} />
+              </div>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontWeight: '600', fontSize: '0.92rem' }}>Panel Admin</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Statistik & kelola pengguna aplikasi
+                </div>
+              </div>
+            </div>
+            <ChevronRight size={18} color="var(--text-muted)" />
+          </button>
+        </div>
+      )}
 
       {/* Section: Manajemen Data */}
       <div className="analysis-card" style={{ marginBottom: '1.25rem' }}>
