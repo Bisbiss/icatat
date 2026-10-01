@@ -525,7 +525,7 @@ export default function LandingPage({ onGoToAuth, onQuickDemo, onOpenPrivacy, su
               </div>
               <h3>Privasi Terjaga, Tanpa Iklan</h3>
               <p className="feature-desc">
-                Catatanmu tersimpan lokal di perangkatmu — atau aman di cloud pribadimu saat kamu masuk akun. Tanpa iklan, tanpa pelacak iklan, dan datamu tidak pernah dijual ke pihak mana pun.
+                Catatanmu tersimpan lokal di perangkatmu — atau aman di database cloud Supabase (PostgreSQL) dengan enkripsi dan Row Level Security saat kamu masuk akun. Tanpa iklan, tanpa pelacak iklan, dan datamu tidak pernah dijual ke pihak mana pun.
               </p>
               <div className="feature-benefit-box">
                 <strong>👉 Manfaat Untukmu:</strong>
